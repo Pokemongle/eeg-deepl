@@ -8,6 +8,8 @@ from PIL import Image
 import scipy.io
 import os
 from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+
 
 
 class MyData(Dataset):
@@ -22,7 +24,7 @@ class MyData(Dataset):
         test dataset: exercise or rest, then ECG or Peak
     """
 
-    def __init__(self, root_dir, experiment_dir,condition_dir):
+    def __init__(self, root_dir, experiment_dir, condition_dir):
         self.root_dir = root_dir
         self.experiment_dir = experiment_dir
         self.condition_dir = condition_dir
@@ -62,20 +64,24 @@ if __name__ == "__main__":
     exper_dir = "rest"
     # condition_dir: hc, mcs, uws
     condi_dir = "hc"
-    rest_hc_dataset = MyData(root_dir,exper_dir,condi_dir)
+    rest_hc_dataset = MyData(root_dir, exper_dir, condi_dir)
     # filepath是最子文件夹中每个.mat文件的名字
     # path是包含当前情况的.mat文件的子文件夹
     # length = len(rest_hc_dataset)
-    for i in range(len(rest_hc_dataset)):
-        filename = os.path.join(rest_hc_dataset.path,rest_hc_dataset.file_path[i])
-        mat = scipy.io.loadmat(filename)
-
-        # mat现在是一个字典，包含了.mat文件中的所有内容
-        # 你可以通过键来访问不同的变量
-        # 例如，如果你的.mat文件中有一个名为'my_variable'的变量，你可以这样访问：
-        print("success")
-
-    filename = os.path.join(rest_hc_dataset.path, rest_hc_dataset.file_path[0])
-    mat = scipy.io.loadmat(filename)
-    print('success')
-    
+    mat_a = np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8]
+    ])
+    mat_index = np.array([
+        [0, 0, 1, 1],
+        [0, 1, 0, 1]
+    ])
+    mat_map = np.array([])
+    keep_map = np.zeros((2, 2, 1))
+    for j in range(mat_a.shape[0]):
+        map = np.zeros((2, 2))
+        print(map)
+        for i in range(mat_a.shape[1]):
+            map[mat_index[0][i]][mat_index[1][i]] = mat_a[j][i]
+        print(map)
+        keep_map = np.concatenate((keep_map, map), axis=2)
