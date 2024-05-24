@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn.init as init
 from torch.utils.data import DataLoader
 
-
+# 只有CNN+空间卷积+Inception
 # 定义一个LSTM模型
 class MyNetwork(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
@@ -74,31 +74,9 @@ class MyNetwork(nn.Module):
             nn.BatchNorm2d(64),  # BatchNormalization层
             # nn.ReLU(inplace=True)  # ReLU激活函数
         )
-        # self.conv5 = nn.Sequential(
-        #     nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(1, 5), stride=(1, 1), padding=(0, 2)),
-        #     nn.BatchNorm2d(128),  # BatchNormalization层
-        #     nn.ReLU(inplace=True),  # ReLU激活函数
-        #     nn.MaxPool2d(kernel_size=(1, 2)),  # 添加 1x2 的 MaxPooling 层
-        #     nn.Conv2d(in_channels=128, out_channels=64, kernel_size=(1, 1)),
-        #     nn.BatchNorm2d(64),  # BatchNormalization层
-        #     nn.ReLU(inplace=True)  # ReLU激活函数
-        # )
-        # self.conv6 = nn.Sequential(
-        #     nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(1, 5), stride=(1, 1), padding=(0, 2)),
-        #     nn.BatchNorm2d(128),  # BatchNormalization层
-        #     nn.ReLU(inplace=True),  # ReLU激活函数
-        #     nn.MaxPool2d(kernel_size=(1, 2)),  # 添加 1x2 的 MaxPooling 层
-        #     nn.Conv2d(in_channels=128, out_channels=64, kernel_size=(1, 1)),
-        #     nn.BatchNorm2d(64),  # BatchNormalization层
-        #     nn.ReLU(inplace=True)  # ReLU激活函数
-        # )
-        # self.fc1 = nn.Linear(64 * 25, 30)
-        # self.fc2 = nn.Linear(30, 3)
 
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.fc1 = nn.Linear(64 * 100, 30)
+        self.fc2 = nn.Linear(30, 2)
         # self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
@@ -110,34 +88,14 @@ class MyNetwork(nn.Module):
         x = torch.cat((x1, x2, x3), dim=1)
         x = torch.reshape(x, (400, 96, 10, 11))
         x = self.convspa(x)
-        # print(x.size())
         x = torch.reshape(x, (1, 64, 1, 400))
         x = self.conv3(x)
-        # print(x.size())
         x = self.conv4(x)
-        # Original CNN part
-        # x = self.conv5(x)
-        # x = self.conv6(x)
-        # x = torch.reshape(x, (x.size(0), -1))  # Flatten the output of the last convolutional layer
-        # self.fc1 = nn.Linear(64 * 25, 30)
-        # self.fc2 = nn.Linear(30, 3)
-        # LSTM part
         x = torch.reshape(x, (1, 100, 64))
-        # 初始化隐藏状态h0, c0为全0向量
-        # h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        # c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        # # 初始化隐藏状态h0, c0为He正态分布向量
-        h0 = init.kaiming_normal_(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(x.device)
-        c0 = init.kaiming_normal_(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(x.device)
-        # 将输入x和隐藏状态(h0, c0)传入LSTM网络
-        out, _ = self.lstm(x, (h0, c0))
-        # print(out[:,-1,:].size())
-        # 取最后一个时间步的输出作为LSTM网络的输出
-        out = self.fc(out[:, -1, :])
-        # print(out.size())
-        # print(out)
-        # out = self.softmax(out)
-        return out
+        x = torch.reshape(x, (x.size(0), -1))  # 将特征图展平为一维向量
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
 
 
 def main():
@@ -156,9 +114,9 @@ def main():
     # # 构建一个随机输入x和对应标签y
     # x = torch.randn(2, 32, 10)  # [batch_size, sequence_length, input_size]
     # print(x.size())
-    y = torch.randint(0, 3, (1,))  # 二分类任务，标签为0或1
-    # print(f"y_size:{y.size()}")
-    # print(y)
+    y = torch.randint(0, 2, (1,))  # 二分类任务，标签为0或1
+    print(f"y_size:{y.size()}")
+    print(y)
     # 创建LSTM模型，并将输入x传入模型计算预测输出
     net = MyNetwork(input_size, hidden_size, num_layers, output_size)
     pred = net(reshaped_input)  # [batch_size, output_size]
