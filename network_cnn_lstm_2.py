@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 # 只有CNN
 # 定义一个LSTM模型
 class MyNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size):
+    def __init__(self):
         super(MyNetwork, self).__init__()
         # 卷积层1
         self.conv1 = nn.Sequential(
@@ -47,32 +47,19 @@ class MyNetwork(nn.Module):
         self.fc2 = nn.Linear(16 * 1 * 30, 30)
         self.fc3 = nn.Linear(30, 2)
 
-
     def forward(self, x):
         # 前向传播过程
         x = self.conv1(x)
-        # print(f"x size: {x.size()}")
         # print(x.size())
-        # x1 = self.conv2_1(x)
-        # x2 = self.conv2_2(x)
-        # x3 = self.conv2_3(x)
-        # x = torch.cat((x1, x2, x3), dim=1)
-        x = torch.reshape(x, (800, 16, 10, 11))
-        # print(x.size())
-        # x = self.convspa(x)
-        # print(x.size())
+        # x = torch.reshape(x, (800, 16, 10, 11))
         x = torch.reshape(x, (1, 16, 110, 800))
-        # print(x.size())
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv4(x)
-        # print(x.size())
         x = torch.reshape(x, (x.size(0), -1))  # 将特征图展平为一维向量
-        # print(x.size())
         x = self.fc1(x)
         x = self.fc2(x)
         x = self.fc3(x)
-        # print('ok')
         return x
 
 
@@ -96,7 +83,7 @@ def main():
     print(f"y_size:{y.size()}")
     print(y)
     # 创建LSTM模型，并将输入x传入模型计算预测输出
-    net = MyNetwork(input_size, hidden_size, num_layers, output_size)
+    net = MyNetwork()
     pred = net(reshaped_input)  # [batch_size, output_size]
 
     # 定义损失函数和优化器，并进行模型训练

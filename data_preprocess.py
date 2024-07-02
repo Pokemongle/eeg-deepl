@@ -1,8 +1,9 @@
 import torch
-from tqdm import tqdm_notebook as tqdm # View procedure
+from tqdm.notebook import tqdm
 import os
 import scipy.io
 import gc
+from load_data import MyData  # self-made
 
 
 def generate_eegmap(dataset, matrix_index, exper_dir, condi_dir, device):
@@ -41,6 +42,28 @@ def generate_eegmap(dataset, matrix_index, exper_dir, condi_dir, device):
         # 保存 被试map 到文件中
         save_path = f"../eegmap_direct/{exper_dir}/{condi_dir}/{dataset.file_path[person]}.pt"
         torch.save(torch.stack(data_map_person), save_path)
+
+
+def generate_eegmap_chunks(root_dir, exper_dir, condi_dir):
+    dataset = MyData(root_dir, exper_dir, condi_dir)
+    data_all = []
+    for person in tqdm(range(len(dataset))):
+        filename = os.path.join(dataset.path, dataset.file_path[person])
+        data_map = torch.load(filename)
+        print(filename)
+        print(data_map.size())
+
+        for i in range(data_map.size(0)):  # 每个被试切割成2400大小的块保存到data_all中
+            data_all.append(data_map[i])
+
+    savepath = f"../data/eegmap_chunks/{exper_dir}/{condi_dir}/{exper_dir}_{condi_dir}.pt"
+    torch.save(torch.stack(data_all), savepath)
+    print(len(data_all))
+    del data_all
+    del dataset
+    del data_map
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':
