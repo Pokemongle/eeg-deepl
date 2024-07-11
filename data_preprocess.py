@@ -1,17 +1,79 @@
+
 import torch
+import numpy as np
 from tqdm.notebook import tqdm
 import os
 import scipy.io
 import gc
 from load_data import MyData  # self-made
+import pandas as pd
 
-
-def generate_eegmap(dataset, matrix_index, exper_dir, condi_dir, device):
+def data_cut(dataset, chunk_length, device):
+    """
+    cut data into chunk_length pieces
+    :param dataset:
+    :param chunk_length:
+    :param device:
+    :return:
+    """
+    # Assuming data is a NumPy array with shape (59, 112008)
     for person in tqdm(range(len(dataset))):  # 12种情况中的1种，其中的所有被试
         # filepath是最子文件夹中每个.mat文件的名字
         # path是包含当前情况的.mat文件的子文件夹
         filename = os.path.join(dataset.path, dataset.file_path[person])  # eg. conditionA\hc\hc1.set.mat
-        data = scipy.io.loadmat(filename)  # 读取该被试的数据为字典
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == '.mat':
+            mat_data = scipy.io.loadmat(filename)
+            # Assuming your data is stored under the key 'data' in the .mat file
+            data = mat_data['datas']
+        elif ext == '.csv':
+            data = pd.read_csv(filename).values
+        elif ext == '.txt':
+            data = np.loadtxt(filename)
+        else:
+            raise ValueError(f"Unsupported file extension: {ext}")
+        # data = scipy.io.loadmat(filename)  # 读取该被试的数据为字典
+        data = data['datas']  # 键值对读取59*2400*[paras]的数据矩阵
+        # 将数据移动到GPU上
+        data = torch.from_numpy(data).to(device)
+    # Calculate n
+    n = data.shape[1] // 2400
+
+    # Reshape the data to (59, 2400, n)
+    reshaped_data = data.reshape(59, 2400, n)
+
+    # Convert the reshaped data to a PyTorch tensor
+    torch_data = torch.tensor(reshaped_data, dtype=torch.float32)
+
+    # Check the shape of the torch tensor
+    print(torch_data.shape)
+
+
+def generate_eegmap(dataset, matrix_index, exper_dir, condi_dir, device):
+    """
+    this function will change 59-channel eeg data into 10×11 eeg map
+    :param dataset:
+    :param matrix_index:
+    :param exper_dir:
+    :param condi_dir:
+    :param device:
+    :return:
+    """
+    for person in tqdm(range(len(dataset))):  # 12种情况中的1种，其中的所有被试
+        # filepath是最子文件夹中每个.mat文件的名字
+        # path是包含当前情况的.mat文件的子文件夹
+        filename = os.path.join(dataset.path, dataset.file_path[person])  # eg. conditionA\hc\hc1.set.mat
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == '.mat':
+            data = scipy.io.loadmat(filename)
+        elif ext == '.csv':
+            data = pd.read_csv(filename).values
+        elif ext == '.txt':
+            data = np.loadtxt(filename)
+        else:
+            raise ValueError(f"Unsupported file extension: {ext}")
+        # data = scipy.io.loadmat(filename)  # 读取该被试的数据为字典
+        # data = scipy.io.loadmat(filename)  # 读取该被试的数据为字典
         data = data['datas']  # 键值对读取59*2400*[paras]的数据矩阵
         # 将数据移动到GPU上
         data = torch.from_numpy(data).to(device)
@@ -34,13 +96,13 @@ def generate_eegmap(dataset, matrix_index, exper_dir, condi_dir, device):
                 data_map_para.append(data_map_point)
             # 保存 段map 到 被试map
             data_map_person.append(torch.stack(data_map_para))
-            print(len(data_map_person))
+            # print(len(data_map_person))
             # 清理内存
             del data_map_para
             gc.collect()
             torch.cuda.empty_cache()
         # 保存 被试map 到文件中
-        save_path = f"../eegmap_direct/{exper_dir}/{condi_dir}/{dataset.file_path[person]}.pt"
+        save_path = f"../data/eegmap_direct/{exper_dir}/{condi_dir}/{dataset.file_path[person]}.pt"
         torch.save(torch.stack(data_map_person), save_path)
 
 
@@ -67,4 +129,14 @@ def generate_eegmap_chunks(root_dir, exper_dir, condi_dir):
 
 
 if __name__ == '__main__':
-    print("generate eegmap")
+    import random
+    dish_list = ['Guizhou', 'Tony', 'Chongqing']
+    max_list = [0,0,0]
+    # choose the loop number
+    for i in range(7):
+        # random shit loop
+        for j in range(10):
+            random_shit = random.randint(0, 2)
+            max_list[random_shit] = max_list[random_shit] + 1
+            print(f"{i*10+(j+1)}: {dish_list[random_shit]}")
+    print(f"We are going to: {dish_list[max_list.index(max(max_list))]}")

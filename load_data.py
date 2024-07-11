@@ -85,3 +85,4 @@ if __name__ == "__main__":
             map[mat_index[0][i]][mat_index[1][i]] = mat_a[j][i]
         print(map)
         keep_map = np.concatenate((keep_map, map), axis=2)
+
